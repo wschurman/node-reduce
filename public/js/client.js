@@ -32,14 +32,28 @@ socket.on('sendMap', function(job_id, map_function, combine_function, data) {
   var output = [];
   var map = eval('('+map_function+')');
   var combine = eval('('+combine_function+')');
+  var mapissue = data.length;
   for(var i = 0; i < data.length; i++) {
     if(data[i]) {
-      output = output.concat(map(data[i]));
+      map(data[i], function(out) {
+        output = output.concat(out);
+        mapissue--;
+        if(mapissue == 0) {
+          output = combine(output);
+          console.log("mapped");
+          socket.emit('sendMapped', job_id, output);
+        }
+      });
+    } else {
+      mapissue--;
+      if(mapissue == 0) {
+        output = combine(output);
+        console.log("mapped");
+        socket.emit('sendMapped', job_id, output);
+      }
     }
   }
-  output = combine(output);
-  console.log("mapped");
-  socket.emit('sendMapped', job_id, output);
+
 });
 socket.on('sendReduce', function(job_id, reduce_function, data) {
   var output = [];

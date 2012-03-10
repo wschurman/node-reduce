@@ -13,7 +13,8 @@ var app = module.exports = express.createServer()
 
 io.configure(function () { 
   io.set("transports", ["xhr-polling"]); 
-  io.set("polling duration", 10); 
+  io.set("polling duration", 10);
+  io.set("log level", 1);
 });
 
 app.configure(function(){
@@ -140,13 +141,13 @@ var wordCount = {
   data: lionSleepsTonight,
   mapBatch: 10,
   reduceBatch: 10,
-  map: (function(input) {
+  map: (function(input, ret) {
     var parts = input.split(' ');
     var output = [];
     for(var i = 0; i < parts.length; i++) {
       output.push([parts[i], 1]);
     }
-    return output;
+    ret(output);
   }).toString(),
   combine: (function(input) {
     input.sort(function(x, y) {
@@ -184,14 +185,14 @@ var invertedIndex = {
   data: indexedLion(),
   mapBatch: 10,
   reduceBatch: 10,
-  map: (function(input) {
+  map: (function(input, ret) {
     var document_id = input[0];
     var parts = input[1].split(' ');
     var output = [];
     for(var i = 0; i < parts.length; i++) {
       output.push([parts[i], [document_id]]);
     }
-    return output;
+    ret(output);
   }).toString(),
   combine: (function(input) {
     input.sort(function(x, y) {
@@ -218,17 +219,24 @@ var invertedIndex = {
   }).toString()
 }
 
-var kNN = {
-  data: lionSleepsTonight,
+// gets links
+var webCrawler = {
+  data: ["http://google.com","http://www.yahoo.com"],
   mapBatch: 10,
   reduceBatch: 10,
-  map: (function(input) {
-    var parts = input.split(' ');
-    var output = [];
-    for(var i = 0; i < parts.length; i++) {
-      output.push([parts[i], 1]);
-    }
-    return output;
+  map: (function(input, ret) {
+    var res = null;
+    $.get(input, function(d) {
+      var parts = [];
+      d.responseText.replace(/href="([^"]+)"/g, function () {
+        parts.push(arguments[1]);
+      });
+      var output = [];
+      for(var i = 0; i < parts.length; i++) {
+        output.push([parts[i], 1]);
+      }
+      ret(output);
+    });
   }).toString(),
   combine: (function(input) {
     input.sort(function(x, y) {
@@ -253,7 +261,42 @@ var kNN = {
     }
     return [input[0], acc];
   }).toString()
-};
+}
+
+var fs = require('fs');
+var anagram = {
+  data: fs.readFileSync("COMMON.TXT","ASCII").split("\r\n"),
+  mapBatch: 1000,
+  reduceBatch: 1000,
+  map: (function(input, ret) {
+    var original = input;
+    var sorted = input.split('').sort().join('');
+    ret([[sorted, [original]]]);
+  }).toString(),
+  combine: (function(input) {
+    input.sort(function(x, y) {
+      return (x[0] < y[0]);
+    });
+    var output = [];
+    var pointer = -1;
+    for(var i = 0; i < input.length; i++) {
+      if(pointer != -1 && output[pointer][0] == input[i][0]) {
+        output[pointer][1] = output[pointer][1].concat(input[i][1]);
+      } else {
+        pointer++;
+        output[pointer] = input[i];
+      }
+    }
+    return output;
+  }).toString(),
+  reduce: (function(input) {
+    var acc = [];
+    for(var i = 0; i < input[1].length; i++) {
+      acc = acc.concat(input[1][i]);
+    }
+    return [input[0], acc];
+  }).toString()
+}
 
 // keep sending data to clients until fun returns false
 // DEPRICATED
@@ -273,7 +316,7 @@ function batchSprayClients(groupSize, input, fun) {
   var i = 0;
   var emitCount = 0;
   while(i < input.length) {
-    for(c in clients) {
+    for(var c in clients) {
       if(queue[c]) {
         if(queue[c].length >= groupSize) {
           fun(clients[c],queue[c]);
@@ -288,7 +331,7 @@ function batchSprayClients(groupSize, input, fun) {
     }
   }
   // cleanup extra
-  for(q in queue) {
+  for(var q in queue) {
     if(queue[q]) {
       fun(clients[q],queue[q]);
       emitCount++;
@@ -309,12 +352,20 @@ function broadcastControllers(fun) {
 app.post('/', function(req, res) {
   var job_id = newJob();
   var job = jobs[job_id];
-  if(req.body.type == 'invertedIndex') {
-    job.job_type = invertedIndex;
-  } else {
-    job.job_type = wordCount;
+  switch(req.body.type) {
+    case 'invertedIndex':
+      job.job_type = invertedIndex;
+      break;
+    case 'webCrawler':
+      job.job_type = webCrawler;
+      break;
+    case 'anagram':
+      job.job_type = anagram;
+      break;
+    // default to wordCount
+    default:
+      job.job_type = wordCount;
   }
-  
   job.mapCount = batchSprayClients(job.job_type.mapBatch, job.job_type.data, function(c, data) {
     c.socket.emit('sendMap', job_id, job.job_type.map, job.job_type.combine, data);
   });
