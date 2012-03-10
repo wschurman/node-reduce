@@ -41,6 +41,7 @@ socket.on('sendMap', function(job_id, map_function, combine_function, data) {
         if(mapissue == 0) {
           output = combine(output);
           console.log("mapped");
+					$("#mapnum").text(parseInt($("#mapnum").text()) + 1);
           socket.emit('sendMapped', job_id, output);
         }
       });
@@ -64,5 +65,6 @@ socket.on('sendReduce', function(job_id, reduce_function, data) {
     }
   }
   console.log("reduced");
+	$("#reducenum").text(parseInt($("#reducenum").text()) + 1);
   socket.emit('sendReduced', job_id, output);
 });

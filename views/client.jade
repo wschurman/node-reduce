@@ -2,33 +2,36 @@ script(type='text/javascript', src='/js/jquery.xdomainajax.js')
 script(type='text/javascript', src='/js/client.js')
 script(type='text/javascript', src='http://maps.google.com/maps/api/js?sensor=true')
 script(type='text/javascript', src='/js/map.js') 
-h1= title
-#mapcanvas
-#fb-root
 script(type='text/javascript', src='http://connect.facebook.net/en_US/all.js')
 script(type='text/javascript', src='/js/fb.js')
+h1= title
 
+table.table.table-striped.table-bordered#worktable
+  thead
+    tr
+      th # Map Jobs Done
+      th # Reduce Jobs Done
+  tr
+    td
+      span#mapnum 0
+    td
+      span#reducenum 0
 
-header.clearfix
+#mapcanvas
+#fb-root
+
+div.clearfix
       br
       #login
-          a(href="#", id="fbLogin", class="button", onclick="login(); return false;") 
-            span(class="plus") Facebook Connect - Login
-          a(href="#", id="fbLogout", class="button", onclick="logout(); return false;") 
-            span(class="plus") Facebook Connect - Logout
+          a(href="#", id="fbLogin", onclick="login(); return false;").btn.btn-primary.btn-large
+            span.plus Connect to Facebook
       br
-      #share-app(id="shareList")
+      #share-app
           p Spread the love, share Node Reduce:
-          ul
-            li
-              a(href="#", class="facebook-button plus", onclick="sendPost(); return true;")
-                span(class="plus") Post to Your Timeline
-            li
-              a(href="#", class="facebook-button speech-bubble", onclick="sendMessage(); return true;")
-                span(class="speech-bubble") Send a Message to Your Friends
-            li
-              a(href="#", class="facebook-button apprequests", onclick="sendInvites(); return true;")
-                span(class="apprequests") Invite Friends to Use Node Reduce
+            .btn-group
+              a(href="#", onclick="sendPost(); return true;").btn Post to Your Timeline
+              a(href="#", onclick="sendMessage(); return true;").btn Send a Message to Your Friends
+              a(href="#", onclick="sendInvites(); return true;").btn Invite Friends to Use Node Reduce
           p Your friends using this app:
           ul(id="friends_using_app")
 

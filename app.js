@@ -65,6 +65,20 @@ function newJob() {
   return j.job_id;
 }
 
+var stages = {
+	MAP : 0,
+	REDUCE : 1
+};
+
+function newClientJob(jid, input_cnt, st) {
+	var cj = {
+		job_id: jid,
+		input: input_cnt,
+		job_stage: st
+	};
+	return cj;
+}
+
 var lionSleepsTonight = [
 "We-de-de-de",
 "De-de-de-de-de",
@@ -315,29 +329,43 @@ function sprayClients(fun) {
 */
 
 // fun(client,dataArray)
-function batchSprayClients(groupSize, input, fun) {
+function batchSprayClients(job_id, stage, groupSize, input, fun) {
   var queue = {};
   var i = 0;
   var emitCount = 0;
-  while(i < input.length) {
-    for(var c in clients) {
-      if(queue[c]) {
-        if(queue[c].length >= groupSize) {
-          fun(clients[c],queue[c]);
-          queue[c] = [];
-          emitCount++;
+  while(i < input.length) { // for each input
+    for(var c in clients) { // for each client
+      if(queue[c]) { // if there is a queue for the client
+        if(queue[c].length >= groupSize) { // if the queue is greater than group size
+          fun(clients[c],queue[c]); // send mapped data to the client
+					
+					if (stage == stages.MAP) {
+						clients[c].mapjobs.push(newClientJob(job_id, queue[c], stage)); //add job to client
+					} else {
+						clients[c].reducejobs.push(newClientJob(job_id, queue[c], stage)); //add job to client
+					}
+					
+          queue[c] = []; // empty the queue
+          emitCount++; // incr num emit jobs
         }
-        queue[c].push(input[i]);
+        queue[c].push(input[i]); // ad input to batch
       } else {
-        queue[c] = [input[i]];
+        queue[c] = [input[i]]; // no queue so create one
       }
-      i++;
+      i++; // go to next input
     }
   }
   // cleanup extra
   for(var q in queue) {
     if(queue[q]) {
       fun(clients[q],queue[q]);
+			
+			if (stage == stages.MAP) {
+				clients[q].mapjobs.push(newClientJob(job_id, queue[q], stage)); //add job to client
+			} else {
+				clients[q].reducejobs.push(newClientJob(job_id, queue[q], stage)); //add job to client
+			}
+			
       emitCount++;
     }
   }
@@ -351,9 +379,23 @@ function broadcastControllers(fun) {
   }
 };
 
+function haveWorkers() {
+	var found = false;
+	for (var c in clients) {
+		if (clients[c]) {
+			found = true;
+			break;
+		}
+	}
+	return found;
+}
 
 // initiate mapreduce request
 app.post('/', function(req, res) {
+	if (!haveWorkers()) {
+		res.json({error:"No Workers, Click client to create one."});
+		return;
+	}
   var job_id = newJob();
   var job = jobs[job_id];
   switch(req.body.type) {
@@ -370,7 +412,7 @@ app.post('/', function(req, res) {
     default:
       job.job_type = wordCount;
   }
-  job.mapCount = batchSprayClients(job.job_type.mapBatch, job.job_type.data, function(c, data) {
+  job.mapCount = batchSprayClients(job_id, stages.MAP, job.job_type.mapBatch, job.job_type.data, function(c, data) {
     c.socket.emit('sendMap', job_id, job.job_type.map, job.job_type.combine, data);
   });
   res.json({job_id: job_id});
@@ -392,7 +434,9 @@ io.sockets.on('connection', function (socket) {
       var client = {
         socket: socket,
         speed: null,
-				loc: null
+				loc: null,
+				mapjobs: [],
+				reducejobs: []
       }
       clients[id] = client;
     } else if(type=='controller') {
@@ -402,9 +446,58 @@ io.sockets.on('connection', function (socket) {
       controllers[id] = controller;
     }
   });
+
   socket.on('disconnect', function() {
+		// redistribute their work
+		var brokencl = clients[socket.client_id];
+		if (!brokencl) {
+			return;
+		}
+		var mj_ptr = 0,
+				rj_ptr = 0;
+		var cmj = null,
+				crj = null;
+		
+		// map jobs
+		while (mj_ptr < brokencl.mapjobs.length) {
+			for (var c in clients) {
+				if (c == socket.client_id) {
+					continue;
+				}
+				if (mj_ptr < brokencl.mapjobs.length) {
+					cmj = brokencl.mapjobs[mj_ptr];
+					if (jobs[cmj.job_id]) {
+						clients[c].socket.emit('sendMap', cmj.job_id, jobs[cmj.job_id].job_type.map, jobs[cmj.job_id].job_type.combine, cmj.input);
+						clients[c].mapjobs.push(newClientJob(job_id, queue[c], stages.MAP));
+					}
+					mj_ptr++;
+				} else {
+					break;
+				}
+			}
+		}
+		while (rj_ptr < brokencl.reducejobs.length) { 
+			for (var c in clients) {
+				if (c == socket.client_id) {
+					continue;
+				}
+		 		if (rj_ptr < brokencl.reducejobs.length) {
+					crj = brokencl.reducejobs[rj_ptr];
+					if (jobs[crj.job_id]) {
+						clients[c].socket.emit('sendReduce', crj.job_id, jobs[crj.job_id].job_type.reduce, crj.input);
+						clients[c].reducejobs.push(newClientJob(job_id, queue[c], stages.REDUCE));
+					}
+					rj_ptr++;
+				} else {
+					break;
+				}
+			}
+		}
+		
+		//delete their data arrs
     delete clients[socket.client_id];
   });
+
   socket.on('sendSpeed', function (data) {
     var c = clients[socket.client_id];
     if(c) {
@@ -428,12 +521,13 @@ io.sockets.on('connection', function (socket) {
     job.mapreturned++;
     // all finished mapping
     if(job.mapreturned == job.mapCount) {
+			clearJobs(stages.MAP);
       var maparray = [];
       for(m in job.mapdata) {
         maparray.push([m, job.mapdata[m]]);
       }
       
-      job.reduceCount = batchSprayClients(job.job_type.reduceBatch, maparray, function(c, data) {
+      job.reduceCount = batchSprayClients(job_id, stages.REDUCE, job.job_type.reduceBatch, maparray, function(c, data) {
         c.socket.emit('sendReduce', job_id, job.job_type.reduce, data);
       });
     }
@@ -445,6 +539,7 @@ io.sockets.on('connection', function (socket) {
     job.reducereturned++;
     // all finished reducing
     if(job.reducereturned == job.reduceCount) {
+			//clearJobs(stages.REDUCE);
       broadcastControllers(function(c) {
         c.socket.emit('finished', job_id, job.job_type.name, Object.keys(clients).length, job.reduceData);
       });
@@ -461,6 +556,21 @@ io.sockets.on('connection', function (socket) {
   });
   
 });
+
+function clearJobs(stage) {
+	if (stage == stages.MAP) {
+		for(var k in clients) {
+			delete k.mapjobs;
+			k.mapjobs = [];
+		}
+	} else {
+		for(var k in clients) {
+			delete k.reducejobs;
+			k.reducejobs = [];
+		}
+	}
+	
+}
 
 function getAllLocations() {
 	data = [];

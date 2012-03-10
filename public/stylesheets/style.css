@@ -1,6 +1,5 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+#main {
+	padding-top: 50px;
 }
 
 a {
@@ -11,6 +10,39 @@ a {
 	width: 100%;
 	height: 600px;
 	box-shadow: 1px 1px 7px rgba(0,0,0,.8);
+}
+
+.alert {
+	display: none;
+}
+
+#results .well {
+	margin-top: 20px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	max-height: 180px;
+}
+
+.btn-group {
+	margin-top: 20px;
+}
+
+.pbar {
+	margin-top: 30px;
+}
+
+
+@media (max-width: 768px) {
+	h1 {
+		display: none;
+	}
+	#mapcanvas {
+		height: 250px;
+		box-shadow: none;
+	}
+	#main {
+		padding-top: 0;
+	}
 }
 
 
