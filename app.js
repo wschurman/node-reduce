@@ -145,7 +145,7 @@ io.sockets.on('connection', function (socket) {
     }
   });
 	socket.on('sendLocation', function (data) {
-    var c = client[socket.client_id];
+    var c = clients[socket.client_id];
 		if(c) {
 			socket.emit('sendAllLocations', getAllLocations());
 			c.loc = data;
