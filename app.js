@@ -1,4 +1,4 @@
-
+var port = process.env.PORT || 1337;
 /**
  * Module dependencies.
  */
@@ -39,7 +39,7 @@ app.get('/', routes.index);
 app.get('/client', routes.client);
 
 
-app.listen(1337);
+app.listen(port);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
 
 var id_counter = 0;
