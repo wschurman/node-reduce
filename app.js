@@ -120,6 +120,7 @@ io.sockets.on('connection', function (socket) {
     mapreturned++;
     if(mapreturned == inputdata.length) {
       mapkeys = Object.keys(mapdata);
+			
       var mappointer = 0;
       while(mappointer < mapkeys.length) {
         for(c in clients) {
@@ -145,7 +146,7 @@ io.sockets.on('connection', function (socket) {
     }
   });
 	socket.on('sendLocation', function (data) {
-    var c = client[socket.client_id];
+    var c = clients[socket.client_id];
 		if(c) {
 			socket.emit('sendAllLocations', getAllLocations());
 			c.loc = data;

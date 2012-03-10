@@ -1,9 +1,13 @@
+var longitude = null,
+		latitude = null;
+
 var socket = io.connect('/');
 var identifier = null;
 socket.on('identifier', function (data) {
   identifier = data;
   socket.emit('register', 'client');
   socket.emit('sendSpeed', getSpeed());
+	socket.emit('sendLocation', {latitude:latitude, longitude:longitude});
 });
 
 // Return time in seconds to process

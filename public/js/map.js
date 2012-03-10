@@ -26,7 +26,8 @@ function success(position) {
       map: map, 
       title:"You are here! (at least within a "+position.coords.accuracy+" meter radius)"
   });
-	socket.emit('sendLocation', {latitude: position.coords.latitude, longitude:position.coords.longitude});
+	latitude = position.coords.latitude;
+	longitude = position.coords.longitude;
 }
 
 function error(msg) {
