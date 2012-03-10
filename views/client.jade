@@ -10,23 +10,28 @@ script(type='text/javascript', src='/js/fb.js')
 
 
 header.clearfix
+      br
       #login
           a(href="#", id="fbLogin", class="facebook-button link", onclick="login(); return false;") 
             span(class="plus") Facebook Connect - Login
-          a(href="#", id="fbLogout", class="facebook-button link", style="display:none", onclick="logout(); return false;") 
+          a(href="#", id="fbLogout", class="facebook-button link", onclick="logout(); return false;") 
             span(class="plus") Facebook Connect - Logout
-      #share-app(id="shareList", style="display:none")
+      br
+      #share-app(id="shareList")
           p Spread the love, share Node Reduce:
           ul
             li
               a(href="#", class="facebook-button plus", onclick="sendPost(); return true;")
-                span(class="plus") Post to Wall
+                span(class="plus") Post to Your Timeline
             li
               a(href="#", class="facebook-button speech-bubble", onclick="sendMessage(); return true;")
-                span(class="speech-bubble") Send Message to Friends
+                span(class="speech-bubble") Send a Message to Your Friends
             li
               a(href="#", class="facebook-button apprequests", onclick="sendInvites(); return true;")
-                span(class="apprequests") Invite Friends
-          p Friends using this app
-          ul#friends_using_app
+                span(class="apprequests") Invite Friends to Use Node Reduce
+          p Your friends using this app:
+          ul(id="friends_using_app")
+
+script(type='text/javascript', src='/js/fb_postinit.js')
+
  

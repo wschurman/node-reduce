@@ -5,6 +5,7 @@ FB.init({
     xfbml: true
 });
 
+
 function login() {
     FB.login(function(response) {
         if (response.session) {
