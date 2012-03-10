@@ -29,6 +29,7 @@ a.brand {
 	overflow-y: scroll;
 	overflow-x: hidden;
 	max-height: 180px;
+	text-wrap: unrestricted;
 }
 
 .btn-group {
