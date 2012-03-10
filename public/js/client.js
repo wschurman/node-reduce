@@ -26,9 +26,9 @@ function getSpeed() {
 
 function wordCountMap(input) {
   var parts = input.split(' ');
-  var output = {};
+  var output = [];
   for(var i = 0; i < parts.length; i++) {
-    output[parts[i]] = 1;
+    output.push([parts[i], 1]);
   }
   console.log("mapped");
   return output;
@@ -43,7 +43,11 @@ function wordCountReduce(key, input) {
 }
 
 socket.on('sendMap', function(job_id, data) {
-  socket.emit('sendMapped', job_id, wordCountMap(data));
+  var output = [];
+  for(var i = 0; i < data.length; i++) {
+    output = output.concat(wordCountMap(data[i]));
+  }
+  socket.emit('sendMapped', job_id, output);
 });
 socket.on('sendReduce', function(job_id, key, data) {
   socket.emit('sendReduced', job_id, key, wordCountReduce(key, data));
