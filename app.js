@@ -36,23 +36,41 @@ app.configure('production', function(){
 var id_counter = 0;
 //in memory hash table
 var clients = {}
+var controllers = {}
 
 // Routes
 app.get('/', routes.index);
 app.get('/client', routes.client);
 
-var data = ["in the jungle", "the mighty jungle"];
-var datapointer = 0;
+var inputdata = ["in the jungle", "the mighty jungle"];
+var inputpointer = 0;
+
+var mapdata = {};
+var mapreturned = 0;
+var mapkeys = null;
+
+var reducedata = {};
+var reducereturned = 0;
+
+function resetJob() {
+  inputpointer = 0;
+  mapdata = {};
+  mapreturned = 0;
+  mapkeys = null;
+  reducedata = {};
+  reducereturned = 0;
+}
 
 app.post('/', function(req, res) {
-  while(datapointer < data.length) {
+  while(inputpointer < inputdata.length) {
     for(c in clients) {
-      if(datapointer < data.length) {
-        c.socket.emit('sendMap', data[datapointer]);
-        datapointer++;
+      if(inputpointer < inputdata.length) {
+        clients[c].socket.emit('sendMap', inputdata[inputpointer]);
+        inputpointer++;
       }
     }
   }
+  res.render('index', { title: 'Express' })
 });
 
 
@@ -65,13 +83,22 @@ io.sockets.on('connection', function (socket) {
   socket.client_id = id;
   
   socket.emit('identifier', id);
-  var client = {
-    socket: socket,
-    speed: null,
-		loc: null
-  }
-
-  clients[id] = client;
+  
+  socket.on('register', function(type) {
+    if(type=='client') {
+      var client = {
+        socket: socket,
+        speed: null,
+				loc: null
+      }
+      clients[id] = client;
+    } else if(type=='controller') {
+      var controller = {
+        socket: socket,
+      }
+      controllers[id] = controller;
+    }
+  });
   socket.on('disconnect', function() {
     delete clients[socket.client_id];
   });
@@ -82,32 +109,40 @@ io.sockets.on('connection', function (socket) {
     }
   });
   
-  var mapdata = {};
-  var numreturned = 0;
   socket.on('sendMapped', function (data) {
     for(d in data) {
       if (mapdata[d]) {
-        mapdata[d] = mapdata[d] + data[d];
+        mapdata[d].push(data[d]);
       } else {
-        mapdata[d] = data[d];
+        mapdata[d] = [data[d]];
       }
     }
-    numreturned++;
-    if(numreturned = data.length - 1) {
+    mapreturned++;
+    if(mapreturned == inputdata.length) {
+      mapkeys = Object.keys(mapdata);
       var mappointer = 0;
-      while(mappointer < data.length) {
+      while(mappointer < mapkeys.length) {
         for(c in clients) {
-          if(datapointer < data.length) {
-            c.socket.emit('sendMap', data[datapointer]);
-            datapointer++;
+          if(mappointer < mapkeys.length) {
+            clients[c].socket.emit('sendReduce', mapkeys[mappointer], mapdata[mapkeys[mappointer]]);
+            mappointer++;
           }
         }
       }
     }
-    console.log(data);
   });
-  socket.on('sendReceived', function (data) {
-    console.log(data);
+
+  socket.on('sendReduced', function(key, data) {
+    reducedata[key] = data;
+    reducereturned++;
+    if(reducereturned == mapkeys.length) {
+      for(c in controllers) {
+        if(c) {
+          controllers[c].socket.emit('finished', reducedata);
+        }
+      }
+      resetJob();
+    }
   });
 	socket.on('sendLocation', function (data) {
     var c = client[socket.client_id];
