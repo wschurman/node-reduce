@@ -1,7 +1,17 @@
 doctype 5
 html(lang="en")
-	head
-		title= title
-		link(rel='stylesheet', href='/stylesheets/style.css')
-		script(type='text/javascript', src='/socket.io/socket.io.js')
-	body!= body
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/css/bootstrap.min.css')
+    script(type='text/javascript', src='/socket.io/socket.io.js')
+  body
+    header.navbar.navbar-fixed-top
+      .navbar-inner
+        .container
+          a(href='/').brand NodeReduce
+          ul.nav
+            li
+              a(href='/client') Client
+    section
+      .container!=body
