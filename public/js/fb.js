@@ -5,6 +5,27 @@ FB.init({
     xfbml: true
 });
 
+function login() {
+    FB.login(function(response) {
+        if (response.session) {
+            $('fbLogin').hide();
+            $('fbLogout').show();
+            $('shareList').show();
+        } else {
+            alert('Login was unsuccessful.');
+        }
+    });
+}
+
+function logout() {
+    FB.logout(function(response) {
+        $('fbLogin').show();
+        $('fbLogout').hide();
+        $('shareList').hide();
+    });
+}
+
+
 function sendPost() {
     FB.ui({
         method: 'feed',
