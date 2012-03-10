@@ -19,6 +19,7 @@ function sendPost() {
 function sendMessage() {
     FB.ui({
         method: 'send',
+        link: 'http://node-reduce.herokuapp.com/client',
         message: "Send a message to a friend about Node Reduce!"
     }, function(response) {
         if (response != null) {
