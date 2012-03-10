@@ -4,9 +4,9 @@ socket.on('identifier', function (data) {
   identifier = data;
   socket.emit('register', 'controller');
 });
-socket.on('finished', function(job_id, data) {
+socket.on('finished', function(job_id, num_clients, data) {
   var div = $('<div>');
-  div.text("Job "+job_id + ": " + JSON.stringify(data));
+  div.text("Job "+job_id+" using "+num_clients+" clients: "+JSON.stringify(data));
   $('#results').prepend(div);
 });
 
