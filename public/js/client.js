@@ -33,13 +33,13 @@ function wordCountMap(input) {
   console.log("mapped");
   return output;
 }
-function wordCountReduce(key, input) {
+function wordCountReduce(input) {
   var acc = 0;
-  for(var i = 0; i < input.length; i++) {
-    acc += input[i];
+  for(var i = 0; i < input[1].length; i++) {
+    acc += input[1][i];
   }
   console.log("reduced");
-  return acc;
+  return [input[0], acc];
 }
 
 socket.on('sendMap', function(job_id, data) {
@@ -49,8 +49,12 @@ socket.on('sendMap', function(job_id, data) {
   }
   socket.emit('sendMapped', job_id, output);
 });
-socket.on('sendReduce', function(job_id, key, data) {
-  socket.emit('sendReduced', job_id, key, wordCountReduce(key, data));
+socket.on('sendReduce', function(job_id, data) {
+  var output = [];
+  for(var i = 0; i < data.length; i++) {
+    output.push(wordCountReduce(data[i]));
+  }
+  socket.emit('sendReduced', job_id, output);
 });
 //socket.emit('sendMapped', );
 //socket.emit('sendReduced', );

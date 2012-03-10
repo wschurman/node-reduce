@@ -54,8 +54,8 @@ function newJob() {
     mapCount: 0,
 		mapdata: [],
 		mapreturned: 0,
-		mapkeys: [],
-		reducedata: {},
+    reduceCount: 0,
+		reduceData: [],
 		reducereturned: 0
 	};
 	job_id_counter++;
@@ -63,7 +63,9 @@ function newJob() {
   return j.job_id;
 }
 
-// keep sending data to clients until fun returns fasle
+// keep sending data to clients until fun returns false
+// DEPRICATED
+/*
 function sprayClients(fun) {
   while(true) {
     for(c in clients) {
@@ -71,9 +73,10 @@ function sprayClients(fun) {
     }
   }
 }
+*/
 
 // fun(client,dataArray)
-function groupSprayClients(groupSize, input, fun) {
+function batchSprayClients(groupSize, input, fun) {
   var queue = {};
   var i = 0;
   var emitCount = 0;
@@ -117,7 +120,7 @@ app.post('/', function(req, res) {
     job.inputdata = jobs[job_id - 1].inputdata;
   }
   job.inputdata.push(req.body.input);
-  job.mapCount = groupSprayClients(10, jobs[job_id].inputdata, function(c, data) {
+  job.mapCount = batchSprayClients(10, job.inputdata, function(c, data) {
     c.socket.emit('sendMap', job_id, data);
   });
   res.json({job_id: job_id});
@@ -162,6 +165,7 @@ io.sockets.on('connection', function (socket) {
   
   socket.on('sendMapped', function (job_id, data) {
     var job = jobs[job_id];
+    // merge keys
     for(var i = 0; i < data.length; i++) {
       var key = data[i][0];
       var value = data[i][1];
@@ -174,22 +178,25 @@ io.sockets.on('connection', function (socket) {
     job.mapreturned++;
     // all finished mapping
     if(job.mapreturned == job.mapCount) {
-      job.mapkeys = Object.keys(job.mapdata);
-      var mappointer = 0;
-      sprayClients(function(c) {
-        c.socket.emit('sendReduce', job_id, job.mapkeys[mappointer], job.mapdata[job.mapkeys[mappointer]]);
-        return ++mappointer < job.mapkeys.length;
+      var maparray = [];
+      for(m in job.mapdata) {
+        maparray.push([m, job.mapdata[m]]);
+      }
+      
+      job.reduceCount = batchSprayClients(10, maparray, function(c, data) {
+        c.socket.emit('sendReduce', job_id, data);
       });
     }
   });
 
-  socket.on('sendReduced', function(job_id, key, data) {
-    jobs[job_id].reducedata[key] = data;
-    jobs[job_id].reducereturned++;
+  socket.on('sendReduced', function(job_id, data) {
+    var job = jobs[job_id];
+    job.reduceData = job.reduceData.concat(data);
+    job.reducereturned++;
     // all finished reducing
-    if(jobs[job_id].reducereturned == jobs[job_id].mapkeys.length) {
+    if(job.reducereturned == job.reduceCount) {
       broadcastControllers(function(c) {
-        c.socket.emit('finished', job_id, jobs[job_id].reducedata);
+        c.socket.emit('finished', job_id, job.reduceData);
       });
     }
   });
