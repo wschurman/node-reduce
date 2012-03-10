@@ -14,10 +14,15 @@ html(lang="en")
       .navbar-inner
         .container
           a(href='/').brand NodeReduce
-          ul.nav
-            li
-              a(href='/client', target='_blank') Client
-            li
-              a(href='/about') About
+          a.btn.btn-navbar(data-toggle='collapse',data-target='.nav-collapse')
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
+          .nav-collapse
+            ul.nav
+              li
+                a(href='/client', target='_blank') Client
+              li
+                a(href='/about') About
     section#main
       .container!=body
