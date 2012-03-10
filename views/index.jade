@@ -7,14 +7,16 @@ h1= title
 div.row
   div.span7
     div.btn-group
-      a#word-count.btn.btn-info.btn-large(href='#') Word Count
-      a#inverted-index.btn.btn-info.btn-large(href='#') Inverted Index
-      a#web-crawler.btn.btn-info.btn-large(href='#') Web Crawler
-      a#anagram.btn.btn-info.btn-large(href='#') Anagrams
+      a#word-count.btn.btn-inverse.btn-large(href='#') Word Count
+      a#inverted-index.btn.btn-inverse.btn-large(href='#') Inverted Index
+      a#web-crawler.btn.btn-inverse.btn-large(href='#') Web Crawler
+      a#anagram.btn.btn-inverse.btn-large(href='#') Anagrams
   div.span5.pbar
     div.progress.progress-success.progress-striped.active#pbar
       div.bar(style="width: 2%;")
 ul#results.unstyled
 
 a.thumbnail
-  img(src='https://chart.googleapis.com/chart?cht=qr&chs=500x500&chl=http%3A%2F%2Fbit.ly%2FyptEMJ')
+  .row
+    img(src='https://chart.googleapis.com/chart?cht=qr&chs=500x500&chl=http%3A%2F%2Fbit.ly%2FyptEMJ').span6
+    img(src='/img/nodereduce.png', style='margin-top:30px').span5
