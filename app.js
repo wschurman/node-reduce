@@ -11,8 +11,8 @@ var app = module.exports = express.createServer()
 
 // Configuration
 
-io.configure(function () { 
-  io.set("transports", ["xhr-polling"]); 
+io.configure(function () {
+  io.set("transports", ["xhr-polling"]);
   io.set("polling duration", 10);
   io.set("log level", 1);
 });
@@ -242,7 +242,7 @@ var invertedIndex = {
 // gets links
 var webCrawler = {
   name: 'webCrawler',
-  data: ["http://google.com","http://www.yahoo.com"],
+  data: ["http://google.com","http://www.yahoo.com","http://www.wikipedia.org"],
   mapBatch: 10,
   reduceBatch: 10,
   map: (function(input, ret) {
@@ -320,6 +320,48 @@ var anagram = {
   }).toString()
 }
 
+function primesData() {
+  var output = [];
+  for(var i = 0; i< 100000; i++) {
+    output.push(i);
+  }
+  return output;
+}
+var primes = {
+  name: 'primes',
+  data: primesData(),
+  mapBatch: 1000,
+  reduceBatch: 100,
+  map: (function(input, ret) {
+    for(var i = 2; i < input; i++) {
+      if(input % i == 0) {
+        ret([]);
+        return;
+      }
+    }
+    ret([[input, 1]]);
+  }).toString(),
+  combine: (function(input) {
+    input.sort(function(x, y) {
+      return (x[0] < y[0]);
+    });
+    var output = [];
+    var pointer = -1;
+    for(var i = 0; i < input.length; i++) {
+      if(pointer != -1 && output[pointer][0] == input[i][0]) {
+        output[pointer][1]++;
+      } else {
+        pointer++;
+        output[pointer] = input[i];
+      }
+    }
+    return input;
+  }).toString(),
+  reduce: (function(input) {
+    return parseInt(input[0]);
+  }).toString()
+};
+
 // keep sending data to clients until fun returns false
 // DEPRICATED
 /*
@@ -342,13 +384,13 @@ function batchSprayClients(job_id, stage, groupSize, input, fun) {
       if(queue[c]) { // if there is a queue for the client
         if(queue[c].length >= groupSize) { // if the queue is greater than group size
           fun(clients[c],queue[c]); // send mapped data to the client
-					
+
 					if (stage == stages.MAP) {
 						clients[c].mapjobs.push(newClientJob(job_id, queue[c], stage)); //add job to client
 					} else {
 						clients[c].reducejobs.push(newClientJob(job_id, queue[c], stage)); //add job to client
 					}
-					
+
           queue[c] = []; // empty the queue
           emitCount++; // incr num emit jobs
         }
@@ -363,13 +405,13 @@ function batchSprayClients(job_id, stage, groupSize, input, fun) {
   for(var q in queue) {
     if(queue[q]) {
       fun(clients[q],queue[q]);
-			
+
 			if (stage == stages.MAP) {
 				clients[q].mapjobs.push(newClientJob(job_id, queue[q], stage)); //add job to client
 			} else {
 				clients[q].reducejobs.push(newClientJob(job_id, queue[q], stage)); //add job to client
 			}
-			
+
       emitCount++;
     }
   }
@@ -412,6 +454,9 @@ app.post('/', function(req, res) {
     case 'anagram':
       job.job_type = anagram;
       break;
+    case 'primes':
+      job.job_type = primes;
+      break;
     // default to wordCount
     default:
       job.job_type = wordCount;
@@ -431,7 +476,7 @@ io.sockets.on('connection', function (socket) {
   client_id += 1;
   var id = client_id;
   socket.client_id = id;
-  
+
   socket.emit('identifier', id);
   socket.on('register', function(type) {
     if(type=='client') {
@@ -461,7 +506,7 @@ io.sockets.on('connection', function (socket) {
 				rj_ptr = 0;
 		var cmj = null,
 				crj = null;
-		
+
 		// map jobs
 		while (mj_ptr < brokencl.mapjobs.length) {
 			for (var c in clients) {
@@ -472,7 +517,7 @@ io.sockets.on('connection', function (socket) {
 					cmj = brokencl.mapjobs[mj_ptr];
 					if (jobs[cmj.job_id]) {
 						clients[c].socket.emit('sendMap', cmj.job_id, jobs[cmj.job_id].job_type.map, jobs[cmj.job_id].job_type.combine, cmj.input);
-						clients[c].mapjobs.push(newClientJob(job_id, queue[c], stages.MAP));
+						clients[c].mapjobs.push(newClientJob(cmj.job_id, cmj.input, stages.MAP));
 					}
 					mj_ptr++;
 				} else {
@@ -480,7 +525,7 @@ io.sockets.on('connection', function (socket) {
 				}
 			}
 		}
-		while (rj_ptr < brokencl.reducejobs.length) { 
+		while (rj_ptr < brokencl.reducejobs.length) {
 			for (var c in clients) {
 				if (c == socket.client_id) {
 					continue;
@@ -489,7 +534,7 @@ io.sockets.on('connection', function (socket) {
 					crj = brokencl.reducejobs[rj_ptr];
 					if (jobs[crj.job_id]) {
 						clients[c].socket.emit('sendReduce', crj.job_id, jobs[crj.job_id].job_type.reduce, crj.input);
-						clients[c].reducejobs.push(newClientJob(job_id, queue[c], stages.REDUCE));
+            clients[c].reducejobs.push(newClientJob(crj.job_id, crj.input, stages.REDUCE));
 					}
 					rj_ptr++;
 				} else {
@@ -497,7 +542,7 @@ io.sockets.on('connection', function (socket) {
 				}
 			}
 		}
-		
+
 		//delete their data arrs
     delete clients[socket.client_id];
   });
@@ -509,7 +554,7 @@ io.sockets.on('connection', function (socket) {
     }
   });
   /* End Membership Functions */
-  
+
   socket.on('sendMapped', function (job_id, data) {
     var job = jobs[job_id];
     // merge keys
@@ -530,7 +575,7 @@ io.sockets.on('connection', function (socket) {
       for(m in job.mapdata) {
         maparray.push([m, job.mapdata[m]]);
       }
-      
+
       job.reduceCount = batchSprayClients(job_id, stages.REDUCE, job.job_type.reduceBatch, maparray, function(c, data) {
         c.socket.emit('sendReduce', job_id, job.job_type.reduce, data);
       });
@@ -550,7 +595,7 @@ io.sockets.on('connection', function (socket) {
       delete jobs[job_id];
     }
   });
-  
+
 	socket.on('sendLocation', function (data) {
     var c = clients[socket.client_id];
 		if(c) {
@@ -558,7 +603,7 @@ io.sockets.on('connection', function (socket) {
 			c.loc = data;
 		}
   });
-  
+
 });
 
 function clearJobs(stage) {
@@ -573,7 +618,7 @@ function clearJobs(stage) {
 			k.reducejobs = [];
 		}
 	}
-	
+
 }
 
 function getAllLocations() {
