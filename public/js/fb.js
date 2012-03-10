@@ -1,4 +1,4 @@
-/*
+
 require.paths.unshift(__dirname);
 
 var everyauth = require('everyauth');
@@ -13,7 +13,7 @@ var uuid = require('node-uuid');
 everyauth.facebook
   .appId(process.env.FACEBOOK_APP_ID)
   .appSecret(process.env.FACEBOOK_SECRET)
-  .scope('user_likes,user_photos,user_photo_video_tags')
+  .scope('')
   .entryPath('/')
   .redirectPath('/home')
   .findOrCreateUser(function() {
@@ -75,27 +75,6 @@ app.get('/home', function(request, response) {
       // generate a uuid for socket association
       var socket_id = uuid();
 
-      // query 4 friends and send them to the socket for this socket id
-      session.graphCall('/me/friends&limit=4')(function(result) {
-        result.data.forEach(function(friend) {
-          socket_manager.send(socket_id, 'friend', friend);
-        });
-      });
-
-      // query 16 photos and send them to the socket for this socket id
-      session.graphCall('/me/photos&limit=16')(function(result) {
-        result.data.forEach(function(photo) {
-          socket_manager.send(socket_id, 'photo', photo);
-        });
-      });
-
-      // query 4 likes and send them to the socket for this socket id
-      session.graphCall('/me/likes&limit=4')(function(result) {
-        result.data.forEach(function(like) {
-          socket_manager.send(socket_id, 'like', like);
-        });
-      });
-
       // use fql to get a list of my friends that are using this app
       session.restCall('fql.query', {
         query: 'SELECT uid, name, is_app_user, pic_square FROM user WHERE uid in (SELECT uid2 FROM friend WHERE uid1 = me()) AND is_app_user = 1',
@@ -124,13 +103,11 @@ app.get('/home', function(request, response) {
     });
 
   } else {
-
     // not authenticated, redirect to / for everyauth to begin authentication
     response.redirect('/');
-
   }
 });
-*/
+
 
 FB.init({
     appId: '391583264205223',
@@ -173,3 +150,16 @@ function sendInvites() {
         }
     });
 }
+
+var socket = io.connect();
+socket.on('connect', function() {
+    socket.on('friend_using_app', function(friend) {
+        $('ul#friends_using_app').append('
+            <li>
+                <a href="" onclick="window.open(\'http://www.facebook.com/' + friend.uid + '\');">
+                    <img src="' + friend.pic_square + '" alt="' + friend.name + '">' + friend.name + '
+                </a>
+            </li> 
+        ');
+    });
+});

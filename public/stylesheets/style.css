@@ -79,3 +79,21 @@ a {
   text-decoration: none;
   text-shadow: 0 1px 1px rgba(255, 255, 255, .2);
 }
+
+/* ------------------------------------------ */
+
+/* =clearfix
+--------------------------------------------- */
+.clearfix:after {
+  clear: both;
+  content: ".";
+  display: block;
+  font-size: 0;
+  height: 0;
+  line-height: 0;
+  visibility: hidden;
+}
+
+.clearfix {
+  zoom: 1;
+}
