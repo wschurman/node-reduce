@@ -17,9 +17,7 @@ table.table.table-striped.table-bordered#worktable
     td
       span#reducenum 0
 
-#mapcanvas
 #fb-root
-
 div.clearfix
       br
       #login
@@ -27,12 +25,17 @@ div.clearfix
             span.plus Connect to Facebook
       br
       #share-app
-          p Spread the love, share Node Reduce:
-            .btn-group
-              a(href="#", onclick="sendPost(); return true;").btn Post to Your Timeline
-              a(href="#", onclick="sendMessage(); return true;").btn Send a Message to Your Friends
-              a(href="#", onclick="sendInvites(); return true;").btn Invite Friends to Use Node Reduce
-          p Your friends using this app:
-          ul(id="friends_using_app")
+        p Spread the love, share Node Reduce:
+          .btn-group
+            a(href="#", onclick="sendPost(); return true;").btn Post to Your Timeline
+            a(href="#", onclick="sendMessage(); return true;").btn Send a Message to Your Friends
+            a(href="#", onclick="sendInvites(); return true;").btn Invite Friends to Use Node Reduce
+        p Your friends using this app:
+        ul(id="friends_using_app")
+
+#mapcanvas
+
+
+
 
  
