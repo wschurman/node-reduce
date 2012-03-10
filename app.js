@@ -68,6 +68,7 @@ io.sockets.on('connection', function (socket) {
   var client = {
     socket: socket,
     speed: null,
+		loc: null
   }
 
   clients[id] = client;
@@ -108,4 +109,19 @@ io.sockets.on('connection', function (socket) {
   socket.on('sendReceived', function (data) {
     console.log(data);
   });
+	socket.on('sendLocation', function (data) {
+    var c = client[socket.client_id];
+		if(c) {
+			socket.emit('sendAllLocations', getAllLocations());
+			c.loc = data;
+		}
+  });
 });
+
+function getAllLocations() {
+	data = [];
+	for(var k in clients) {
+		data.push(k.loc);
+	}
+	return data;
+}
