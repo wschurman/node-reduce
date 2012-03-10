@@ -4,15 +4,18 @@ socket.on('identifier', function (data) {
   identifier = data;
   socket.emit('register', 'controller');
 });
-socket.on('finished', function(data) {
+socket.on('finished', function(job_id, data) {
   console.log(data);
-  $('#results').text(JSON.stringify(data));
+  $('#results').text("Job "+job_id + ": " + JSON.stringify(data));
 });
 
 $(function() {
   $('#button').click(function() {
     console.log('posting');
-    $.post('/',function(){});
+    var data = {
+      input: $('#inputdata').val()
+    };
+    $.post('/', data,function(){});
     return false;
   });
 });

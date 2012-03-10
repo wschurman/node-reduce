@@ -33,44 +33,55 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
-var id_counter = 0;
+//ids of clients
+var client_id = 0;
 //in memory hash table
-var clients = {}
-var controllers = {}
+var clients = {};
+var controllers = {};
+// map reduce job id
+var job_id_counter = 0;
 
 // Routes
 app.get('/', routes.index);
 app.get('/client', routes.client);
 
-var inputdata = ["in the jungle", "the mighty jungle"];
-var inputpointer = 0;
+// indexed by job id
+var inputdata = [];
+var mapdata = [];
+var mapreturned = [];
+var mapkeys = [];
+var reducedata = [];
+var reducereturned = [];
 
-var mapdata = {};
-var mapreturned = 0;
-var mapkeys = null;
-
-var reducedata = {};
-var reducereturned = 0;
-
-function resetJob() {
-  inputpointer = 0;
-  mapdata = {};
-  mapreturned = 0;
-  mapkeys = null;
-  reducedata = {};
-  reducereturned = 0;
+function newJob() {
+  var job_id = job_id_counter;
+  job_id_counter++;
+  inputdata.push([]);
+  mapdata.push({});
+  mapreturned.push(0);
+  mapkeys.push([]);
+  reducedata.push({});
+  reducereturned.push(0);
+  return job_id;
 }
 
 app.post('/', function(req, res) {
-  while(inputpointer < inputdata.length) {
+  var job_id = newJob();
+  if(job_id > 0) {
+    inputdata[job_id] = inputdata[job_id - 1];
+  }
+  inputdata[job_id].push(req.body.input);
+  console.log(inputdata[job_id]);
+  var inputpointer = 0;
+  while(inputpointer < inputdata[job_id].length) {
     for(c in clients) {
-      if(inputpointer < inputdata.length) {
-        clients[c].socket.emit('sendMap', inputdata[inputpointer]);
+      if(inputpointer < inputdata[job_id].length) {
+        clients[c].socket.emit('sendMap', job_id, inputdata[job_id][inputpointer]);
         inputpointer++;
       }
     }
   }
-  res.render('index', { title: 'Express' })
+  res.json({job_id: job_id});
 });
 
 
@@ -78,12 +89,12 @@ app.listen(port);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
 
 io.sockets.on('connection', function (socket) {
-  id_counter += 1;
-  var id = id_counter;
+  /* Membership Functions */
+  client_id += 1;
+  var id = client_id;
   socket.client_id = id;
   
   socket.emit('identifier', id);
-  
   socket.on('register', function(type) {
     if(type=='client') {
       var client = {
@@ -108,24 +119,24 @@ io.sockets.on('connection', function (socket) {
       c.speed = data;
     }
   });
+  /* End Membership Functions */
   
-  socket.on('sendMapped', function (data) {
+  socket.on('sendMapped', function (job_id, data) {
     for(d in data) {
-      if (mapdata[d]) {
-        mapdata[d].push(data[d]);
+      if (mapdata[job_id][d]) {
+        mapdata[job_id][d].push(data[d]);
       } else {
-        mapdata[d] = [data[d]];
+        mapdata[job_id][d] = [data[d]];
       }
     }
-    mapreturned++;
-    if(mapreturned == inputdata.length) {
-      mapkeys = Object.keys(mapdata);
-			
+    mapreturned[job_id]++;
+    if(mapreturned[job_id] == inputdata[job_id].length) {
+      mapkeys[job_id] = Object.keys(mapdata[job_id]);
       var mappointer = 0;
-      while(mappointer < mapkeys.length) {
+      while(mappointer < mapkeys[job_id].length) {
         for(c in clients) {
-          if(mappointer < mapkeys.length) {
-            clients[c].socket.emit('sendReduce', mapkeys[mappointer], mapdata[mapkeys[mappointer]]);
+          if(mappointer < mapkeys[job_id].length) {
+            clients[c].socket.emit('sendReduce', job_id, mapkeys[job_id][mappointer], mapdata[job_id][mapkeys[job_id][mappointer]]);
             mappointer++;
           }
         }
@@ -133,18 +144,18 @@ io.sockets.on('connection', function (socket) {
     }
   });
 
-  socket.on('sendReduced', function(key, data) {
-    reducedata[key] = data;
-    reducereturned++;
-    if(reducereturned == mapkeys.length) {
+  socket.on('sendReduced', function(job_id, key, data) {
+    reducedata[job_id][key] = data;
+    reducereturned[job_id]++;
+    if(reducereturned[job_id] == mapkeys[job_id].length) {
       for(c in controllers) {
         if(c) {
-          controllers[c].socket.emit('finished', reducedata);
+          controllers[c].socket.emit('finished', job_id, reducedata[job_id]);
         }
       }
-      resetJob();
     }
   });
+  /*
 	socket.on('sendLocation', function (data) {
     var c = clients[socket.client_id];
 		if(c) {
@@ -152,6 +163,7 @@ io.sockets.on('connection', function (socket) {
 			c.loc = data;
 		}
   });
+  */
 });
 
 function getAllLocations() {
