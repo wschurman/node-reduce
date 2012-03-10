@@ -21,7 +21,7 @@ $(function() {
 
 function login() {
     FB.login(function(response) {
-        if (response.session) {
+        if (response.authResponse) {
             $('#fbLogin').hide();
             $('#fbLogout').show();
             $('#shareList').show();
