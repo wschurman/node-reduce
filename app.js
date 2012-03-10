@@ -65,22 +65,34 @@ function newJob() {
   return job_id;
 }
 
+// keep sending data to clients until fun returns fasle
+function sprayClients(fun) {
+  while(true) {
+    for(c in clients) {
+      if(!fun(clients[c])) { return; }
+    }
+  }
+}
+
+// send to all controllers
+function broadcastControllers(fun) {
+  for(c in controllers) {
+    fun(controllers[c]);
+  }
+};
+
+
 app.post('/', function(req, res) {
   var job_id = newJob();
   if(job_id > 0) {
     inputdata[job_id] = inputdata[job_id - 1];
   }
   inputdata[job_id].push(req.body.input);
-  console.log(inputdata[job_id]);
   var inputpointer = 0;
-  while(inputpointer < inputdata[job_id].length) {
-    for(c in clients) {
-      if(inputpointer < inputdata[job_id].length) {
-        clients[c].socket.emit('sendMap', job_id, inputdata[job_id][inputpointer]);
-        inputpointer++;
-      }
-    }
-  }
+  sprayClients(function(c) {
+    c.socket.emit('sendMap', job_id, inputdata[job_id][inputpointer]);
+    return ++inputpointer < inputdata[job_id].length;
+  });
   res.json({job_id: job_id});
 });
 
@@ -133,14 +145,10 @@ io.sockets.on('connection', function (socket) {
     if(mapreturned[job_id] == inputdata[job_id].length) {
       mapkeys[job_id] = Object.keys(mapdata[job_id]);
       var mappointer = 0;
-      while(mappointer < mapkeys[job_id].length) {
-        for(c in clients) {
-          if(mappointer < mapkeys[job_id].length) {
-            clients[c].socket.emit('sendReduce', job_id, mapkeys[job_id][mappointer], mapdata[job_id][mapkeys[job_id][mappointer]]);
-            mappointer++;
-          }
-        }
-      }
+      sprayClients(function(c) {
+        c.socket.emit('sendReduce', job_id, mapkeys[job_id][mappointer], mapdata[job_id][mapkeys[job_id][mappointer]]);
+        return ++mappointer < mapkeys[job_id].length;
+      });
     }
   });
 
@@ -148,11 +156,9 @@ io.sockets.on('connection', function (socket) {
     reducedata[job_id][key] = data;
     reducereturned[job_id]++;
     if(reducereturned[job_id] == mapkeys[job_id].length) {
-      for(c in controllers) {
-        if(c) {
-          controllers[c].socket.emit('finished', job_id, reducedata[job_id]);
-        }
-      }
+      broadcastControllers(function(c) {
+        c.socket.emit('finished', job_id, reducedata[job_id]);
+      });
     }
   });
   /*
