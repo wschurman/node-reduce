@@ -6,6 +6,8 @@ h1= title
 #fb-root
 script(type='text/javascript', src='http://connect.facebook.net/en_US/all.js')
 script(type='text/javascript', src='/js/fb.js')
+
+
 header.clearfix
       #share-app
           p Spread the love, share Node Reduce:
@@ -19,4 +21,7 @@ header.clearfix
             li
               a(href="#", class="facebook-button apprequests", onclick="sendInvites(); return true;")
                 span(class="apprequests") Invite Friends
+      #list
+          p Friends using this app
+          ul#friends_using_app
  
