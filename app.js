@@ -52,7 +52,7 @@ function newJob() {
 		job_id: job_id_counter,
 		inputdata: [],
     mapCount: 0,
-		mapdata: [],
+		mapdata: {},
 		mapreturned: 0,
     reduceCount: 0,
 		reduceData: [],

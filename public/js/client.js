@@ -30,7 +30,22 @@ function wordCountMap(input) {
   for(var i = 0; i < parts.length; i++) {
     output.push([parts[i], 1]);
   }
-  console.log("mapped");
+  return output;
+}
+function wordCountCombine(input) {
+  input.sort(function(x, y) {
+    return (x[0] < y[0]);
+  });
+  var output = [];
+  var pointer = -1;
+  for(var i = 0; i < input.length; i++) {
+    if(pointer != -1 && output[pointer][0] == input[i][0]) {
+      output[pointer][1]++;
+    } else {
+      pointer++;
+      output[pointer] = input[i];
+    }
+  }
   return output;
 }
 function wordCountReduce(input) {
@@ -38,7 +53,6 @@ function wordCountReduce(input) {
   for(var i = 0; i < input[1].length; i++) {
     acc += input[1][i];
   }
-  console.log("reduced");
   return [input[0], acc];
 }
 
@@ -47,6 +61,8 @@ socket.on('sendMap', function(job_id, data) {
   for(var i = 0; i < data.length; i++) {
     output = output.concat(wordCountMap(data[i]));
   }
+  output = wordCountCombine(output);
+  console.log("mapped");
   socket.emit('sendMapped', job_id, output);
 });
 socket.on('sendReduce', function(job_id, data) {
@@ -54,7 +70,6 @@ socket.on('sendReduce', function(job_id, data) {
   for(var i = 0; i < data.length; i++) {
     output.push(wordCountReduce(data[i]));
   }
+  console.log("reduced");
   socket.emit('sendReduced', job_id, output);
 });
-//socket.emit('sendMapped', );
-//socket.emit('sendReduced', );
