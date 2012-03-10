@@ -84,4 +84,17 @@ $(function() {
 		});
     return false;
   });
+  $('#primes').click(function() {
+		resetProgressbar();
+    var data = {
+      type: 'primes'
+    };
+    $.post('/', data, function(data){
+			if (data.error) {
+				$("#errortext").text(data.error);
+				$(".alert").slideDown();
+			}
+		});
+    return false;
+  });
 });
