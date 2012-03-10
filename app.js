@@ -50,6 +50,7 @@ var jobs = [];
 function newJob() {
 	var j = {
 		job_id: job_id_counter,
+    job_type: null,
 		inputdata: [],
     mapCount: 0,
 		mapdata: {},
@@ -61,6 +62,160 @@ function newJob() {
 	job_id_counter++;
 	jobs.push(j);
   return j.job_id;
+}
+
+var lionSleepsTonight = [
+"We-de-de-de",
+"De-de-de-de-de",
+"De-we-um-um-a-way",
+"We-de-de-de",
+"De-de-de-de-de",
+"We-um-um-a-way",
+
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+
+"In the jungle",
+"The mighty jungle",
+"The lion sleeps tonight",
+"In the jungle",
+"The quiet jungle",
+"The lion sleeps tonight",
+
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+
+"Near the village",
+"The peaceful village",
+"The lion sleeps tonight",
+"Near the village",
+"The quiet village",
+"The lion sleeps tonight",
+
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+
+"Hush, my darling",
+"Don't fear my darling",
+"The lion sleeps tonight",
+"Hush, my darling",
+"Don't fear my darling",
+"The lion sleeps tonight",
+
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a wimoweh",
+"A-wimoweh, a-wimoweh",
+"A-wimoweh, a-wimoweh",
+
+"We-de-de-de",
+"De-de-de-de-de",
+"De-we-um-um-a-way",
+"We-de-de-de",
+"De-de-de-de-de",
+"We-um-um-a-way"];
+
+var wordCount = {
+  data: lionSleepsTonight,
+  mapBatch: 10,
+  reduceBatch: 10,
+  map: (function(input) {
+    var parts = input.split(' ');
+    var output = [];
+    for(var i = 0; i < parts.length; i++) {
+      output.push([parts[i], 1]);
+    }
+    return output;
+  }).toString(),
+  combine: (function(input) {
+    input.sort(function(x, y) {
+      return (x[0] < y[0]);
+    });
+    var output = [];
+    var pointer = -1;
+    for(var i = 0; i < input.length; i++) {
+      if(pointer != -1 && output[pointer][0] == input[i][0]) {
+        output[pointer][1]++;
+      } else {
+        pointer++;
+        output[pointer] = input[i];
+      }
+    }
+    return output;
+  }).toString(),
+  reduce: (function(input) {
+    var acc = 0;
+    for(var i = 0; i < input[1].length; i++) {
+      acc += input[1][i];
+    }
+    return [input[0], acc];
+  }).toString()
+};
+
+function indexedLion() {
+  var output = [];
+  for(var i = 0; i < lionSleepsTonight.length; i++) {
+    output.push([i, lionSleepsTonight[i]]);
+  }
+  return output;
+}
+var invertedIndex = {
+  data: indexedLion(),
+  mapBatch: 10,
+  reduceBatch: 10,
+  map: (function(input) {
+    var document_id = input[0];
+    var parts = input[1].split(' ');
+    var output = [];
+    for(var i = 0; i < parts.length; i++) {
+      output.push([parts[i], [document_id]]);
+    }
+    return output;
+  }).toString(),
+  combine: (function(input) {
+    input.sort(function(x, y) {
+      return (x[0] < y[0]);
+    });
+    var output = [];
+    var pointer = -1;
+    for(var i = 0; i < input.length; i++) {
+      if(pointer != -1 && output[pointer][0] == input[i][0]) {
+        output[pointer][1] = output[pointer][1].concat(input[i][1]);
+      } else {
+        pointer++;
+        output[pointer] = input[i];
+      }
+    }
+    return output;
+  }).toString(),
+  reduce: (function(input) {
+    var acc = [];
+    for(var i = 0; i < input[1].length; i++) {
+      acc = acc.concat(input[1][i]);
+    }
+    return [input[0], acc];
+  }).toString()
 }
 
 // keep sending data to clients until fun returns false
@@ -84,8 +239,8 @@ function batchSprayClients(groupSize, input, fun) {
     for(c in clients) {
       if(queue[c]) {
         if(queue[c].length >= groupSize) {
-          fun(clients[q],queue[q]);
-          queue[q] = [];
+          fun(clients[c],queue[c]);
+          queue[c] = [];
           emitCount++;
         }
         queue[c].push(input[i]);
@@ -113,15 +268,18 @@ function broadcastControllers(fun) {
 };
 
 
+// initiate mapreduce request
 app.post('/', function(req, res) {
   var job_id = newJob();
   var job = jobs[job_id];
-  if(job_id > 0) {
-    job.inputdata = jobs[job_id - 1].inputdata;
+  if(req.body.type == 'invertedIndex') {
+    job.job_type = invertedIndex;
+  } else {
+    job.job_type = wordCount;
   }
-  job.inputdata.push(req.body.input);
-  job.mapCount = batchSprayClients(10, job.inputdata, function(c, data) {
-    c.socket.emit('sendMap', job_id, data);
+  
+  job.mapCount = batchSprayClients(job.job_type.mapBatch, job.job_type.data, function(c, data) {
+    c.socket.emit('sendMap', job_id, job.job_type.map, job.job_type.combine, data);
   });
   res.json({job_id: job_id});
 });
@@ -183,8 +341,8 @@ io.sockets.on('connection', function (socket) {
         maparray.push([m, job.mapdata[m]]);
       }
       
-      job.reduceCount = batchSprayClients(10, maparray, function(c, data) {
-        c.socket.emit('sendReduce', job_id, data);
+      job.reduceCount = batchSprayClients(job.job_type.reduceBatch, maparray, function(c, data) {
+        c.socket.emit('sendReduce', job_id, job.job_type.reduce, data);
       });
     }
   });

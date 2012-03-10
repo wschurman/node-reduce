@@ -20,55 +20,27 @@ function getSpeed() {
   }
   */
   var duration = (new Date().getTime()) - start;
-  console.log(duration);
+  //console.log(duration);
   return duration;
 }
 
-function wordCountMap(input) {
-  var parts = input.split(' ');
+socket.on('sendMap', function(job_id, map_function, combine_function, data) {
   var output = [];
-  for(var i = 0; i < parts.length; i++) {
-    output.push([parts[i], 1]);
-  }
-  return output;
-}
-function wordCountCombine(input) {
-  input.sort(function(x, y) {
-    return (x[0] < y[0]);
-  });
-  var output = [];
-  var pointer = -1;
-  for(var i = 0; i < input.length; i++) {
-    if(pointer != -1 && output[pointer][0] == input[i][0]) {
-      output[pointer][1]++;
-    } else {
-      pointer++;
-      output[pointer] = input[i];
-    }
-  }
-  return output;
-}
-function wordCountReduce(input) {
-  var acc = 0;
-  for(var i = 0; i < input[1].length; i++) {
-    acc += input[1][i];
-  }
-  return [input[0], acc];
-}
-
-socket.on('sendMap', function(job_id, data) {
-  var output = [];
+  console.log(map_function);
+  var map = eval('('+map_function+')');
+  var combine = eval('('+combine_function+')');
   for(var i = 0; i < data.length; i++) {
-    output = output.concat(wordCountMap(data[i]));
+    output = output.concat(map(data[i]));
   }
-  output = wordCountCombine(output);
+  output = combine(output);
   console.log("mapped");
   socket.emit('sendMapped', job_id, output);
 });
-socket.on('sendReduce', function(job_id, data) {
+socket.on('sendReduce', function(job_id, reduce_function, data) {
   var output = [];
+  var reduce = eval('('+reduce_function+')');
   for(var i = 0; i < data.length; i++) {
-    output.push(wordCountReduce(data[i]));
+    output.push(reduce(data[i]));
   }
   console.log("reduced");
   socket.emit('sendReduced', job_id, output);

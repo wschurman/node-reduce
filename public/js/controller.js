@@ -11,10 +11,16 @@ socket.on('finished', function(job_id, data) {
 });
 
 $(function() {
-  $('#button').click(function() {
-    console.log('posting');
+  $('#word-count').click(function() {
     var data = {
-      input: $('#inputdata').val()
+      type: 'wordCount'
+    };
+    $.post('/', data,function(){});
+    return false;
+  });
+  $('#inverted-index').click(function() {
+    var data = {
+      type: 'invertedIndex'
     };
     $.post('/', data,function(){});
     return false;
