@@ -33,26 +33,79 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
-// Routes
+var id_counter = 0;
+//in memory hash table
+var clients = {}
 
+// Routes
 app.get('/', routes.index);
 app.get('/client', routes.client);
+
+var data = ["in the jungle", "the mighty jungle"];
+var datapointer = 0;
+
+app.post('/', function(req, res) {
+  while(datapointer < data.length) {
+    for(c in clients) {
+      if(datapointer < data.length) {
+        c.socket.emit('sendMap', data[datapointer]);
+        datapointer++;
+      }
+    }
+  }
+});
 
 
 app.listen(port);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
 
-var id_counter = 0;
-var clients = []
-
 io.sockets.on('connection', function (socket) {
-	id_counter += 1;
-	var client = {
-		"id": id_counter,
-	}
-  	socket.emit('identifier', client);
-	clients.push(client);
-  	socket.on('my other event', function (data) {
-    	console.log(data);
-  	});
+  id_counter += 1;
+  var id = id_counter;
+  socket.client_id = id;
+  
+  socket.emit('identifier', id);
+  var client = {
+    socket: socket,
+    speed: null,
+  }
+
+  clients[id] = client;
+  socket.on('disconnect', function() {
+    delete clients[socket.client_id];
+  });
+  socket.on('sendSpeed', function (data) {
+    var c = clients[socket.client_id];
+    if(c) {
+      c.speed = data;
+    }
+  });
+  
+  var mapdata = {};
+  var numreturned = 0;
+  socket.on('sendMapped', function (data) {
+    for(d in data) {
+      if (mapdata[d]) {
+        mapdata[d] = mapdata[d] + data[d];
+      } else {
+        mapdata[d] = data[d];
+      }
+    }
+    numreturned++;
+    if(numreturned = data.length - 1) {
+      var mappointer = 0;
+      while(mappointer < data.length) {
+        for(c in clients) {
+          if(datapointer < data.length) {
+            c.socket.emit('sendMap', data[datapointer]);
+            datapointer++;
+          }
+        }
+      }
+    }
+    console.log(data);
+  });
+  socket.on('sendReceived', function (data) {
+    console.log(data);
+  });
 });
