@@ -145,6 +145,7 @@ io.sockets.on('connection', function (socket) {
       resetJob();
     }
   });
+  /*
 	socket.on('sendLocation', function (data) {
     var c = clients[socket.client_id];
 		if(c) {
@@ -152,6 +153,7 @@ io.sockets.on('connection', function (socket) {
 			c.loc = data;
 		}
   });
+  */
 });
 
 function getAllLocations() {
