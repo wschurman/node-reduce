@@ -3,3 +3,20 @@ script(type='text/javascript', src='http://maps.google.com/maps/api/js?sensor=tr
 script(type='text/javascript', src='/js/map.js') 
 h1= title
 #mapcanvas
+#fb-root
+script(type='text/javascript', src='http://connect.facebook.net/en_US/all.js')
+script(type='text/javascript', src='/js/fb.js')
+header.clearfix
+      #share-app
+          p Spread the love, share Node Reduce:
+          ul
+            li
+              a(href="#", class="facebook-button plus", onclick="sendPost(); return true;")
+                span(class="plus") Post to Wall
+            li
+              a(href="#", class="facebook-button speech-bubble", onclick="sendMessage(); return true;")
+                span(class="speech-bubble") Send Message to Friends
+            li
+              a(href="#", class="facebook-button apprequests", onclick="sendInvites(); return true;")
+                span(class="apprequests") Invite Friends
+ 
