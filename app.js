@@ -45,7 +45,7 @@ var job_id_counter = 0;
 // Routes
 app.get('/', routes.index);
 app.get('/client', routes.client);
-app.get('/canvas/', function() {
+app.post('/canvas/', function() {
 	response.redirect('http://me.harrisoncwong.com:1337/client');
 });
 
