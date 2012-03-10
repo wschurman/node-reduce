@@ -218,6 +218,43 @@ var invertedIndex = {
   }).toString()
 }
 
+var kNN = {
+  data: lionSleepsTonight,
+  mapBatch: 10,
+  reduceBatch: 10,
+  map: (function(input) {
+    var parts = input.split(' ');
+    var output = [];
+    for(var i = 0; i < parts.length; i++) {
+      output.push([parts[i], 1]);
+    }
+    return output;
+  }).toString(),
+  combine: (function(input) {
+    input.sort(function(x, y) {
+      return (x[0] < y[0]);
+    });
+    var output = [];
+    var pointer = -1;
+    for(var i = 0; i < input.length; i++) {
+      if(pointer != -1 && output[pointer][0] == input[i][0]) {
+        output[pointer][1]++;
+      } else {
+        pointer++;
+        output[pointer] = input[i];
+      }
+    }
+    return output;
+  }).toString(),
+  reduce: (function(input) {
+    var acc = 0;
+    for(var i = 0; i < input[1].length; i++) {
+      acc += input[1][i];
+    }
+    return [input[0], acc];
+  }).toString()
+};
+
 // keep sending data to clients until fun returns false
 // DEPRICATED
 /*
@@ -354,8 +391,9 @@ io.sockets.on('connection', function (socket) {
     // all finished reducing
     if(job.reducereturned == job.reduceCount) {
       broadcastControllers(function(c) {
-        c.socket.emit('finished', job_id, job.reduceData);
+        c.socket.emit('finished', job_id, Object.keys(clients).length, job.reduceData);
       });
+      delete jobs[job_id];
     }
   });
   

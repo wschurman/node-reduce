@@ -1,3 +1,7 @@
+if(!window.console) {
+  console.log = function(){};
+}
+
 var longitude = null,
 		latitude = null;
 
@@ -26,11 +30,12 @@ function getSpeed() {
 
 socket.on('sendMap', function(job_id, map_function, combine_function, data) {
   var output = [];
-  console.log(map_function);
   var map = eval('('+map_function+')');
   var combine = eval('('+combine_function+')');
   for(var i = 0; i < data.length; i++) {
-    output = output.concat(map(data[i]));
+    if(data[i]) {
+      output = output.concat(map(data[i]));
+    }
   }
   output = combine(output);
   console.log("mapped");
@@ -40,7 +45,9 @@ socket.on('sendReduce', function(job_id, reduce_function, data) {
   var output = [];
   var reduce = eval('('+reduce_function+')');
   for(var i = 0; i < data.length; i++) {
-    output.push(reduce(data[i]));
+    if(data[i]) {
+      output.push(reduce(data[i]));
+    }
   }
   console.log("reduced");
   socket.emit('sendReduced', job_id, output);
