@@ -10,9 +10,11 @@ socket.on('identifier', function (data) {
 function getSpeed() {
   var start = (new Date().getTime());
   var a = 0;
+  /*
   for(var i = 0; i < 1000000000; i++) {
     a++;
   }
+  */
   var duration = (new Date().getTime()) - start;
   console.log(duration);
   return duration;
@@ -36,11 +38,11 @@ function wordCountReduce(key, input) {
   return acc;
 }
 
-socket.on('sendMap', function(data) {
-  socket.emit('sendMapped', wordCountMap(data));
+socket.on('sendMap', function(job_id, data) {
+  socket.emit('sendMapped', job_id, wordCountMap(data));
 });
-socket.on('sendReduce', function(key, data) {
-  socket.emit('sendReduced', key, wordCountReduce(key,data));
+socket.on('sendReduce', function(job_id, key, data) {
+  socket.emit('sendReduced', job_id, key, wordCountReduce(key, data));
 });
 //socket.emit('sendMapped', );
 //socket.emit('sendReduced', );
