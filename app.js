@@ -45,24 +45,21 @@ var job_id_counter = 0;
 app.get('/', routes.index);
 app.get('/client', routes.client);
 
-// indexed by job id
-var inputdata = [];
-var mapdata = [];
-var mapreturned = [];
-var mapkeys = [];
-var reducedata = [];
-var reducereturned = [];
+var jobs = [];
 
 function newJob() {
-  var job_id = job_id_counter;
-  job_id_counter++;
-  inputdata.push([]);
-  mapdata.push({});
-  mapreturned.push(0);
-  mapkeys.push([]);
-  reducedata.push({});
-  reducereturned.push(0);
-  return job_id;
+	var j = {
+		job_id: job_id_counter,
+		inputdata: [],
+		mapdata: {},
+		mapreturned: 0,
+		mapkeys: [],
+		reducedata: {},
+		reducereturned: 0
+	};
+	job_id_counter++;
+	jobs.push(j);
+  return j.job_id;
 }
 
 // keep sending data to clients until fun returns fasle
@@ -85,13 +82,13 @@ function broadcastControllers(fun) {
 app.post('/', function(req, res) {
   var job_id = newJob();
   if(job_id > 0) {
-    inputdata[job_id] = inputdata[job_id - 1];
+    jobs[job_id].inputdata = jobs[job_id - 1].inputdata;
   }
-  inputdata[job_id].push(req.body.input);
+  jobs[job_id].inputdata.push(req.body.input);
   var inputpointer = 0;
   sprayClients(function(c) {
-    c.socket.emit('sendMap', job_id, inputdata[job_id][inputpointer]);
-    return ++inputpointer < inputdata[job_id].length;
+    c.socket.emit('sendMap', job_id, jobs[job_id].inputdata[inputpointer]);
+    return ++inputpointer < jobs[job_id].inputdata.length;
   });
   res.json({job_id: job_id});
 });
@@ -135,33 +132,33 @@ io.sockets.on('connection', function (socket) {
   
   socket.on('sendMapped', function (job_id, data) {
     for(d in data) {
-      if (mapdata[job_id][d]) {
-        mapdata[job_id][d].push(data[d]);
+      if (jobs[job_id].mapdata[d]) {
+        jobs[job_id].mapdata[d].push(data[d]);
       } else {
-        mapdata[job_id][d] = [data[d]];
+        jobs[job_id].mapdata[d] = [data[d]];
       }
     }
-    mapreturned[job_id]++;
-    if(mapreturned[job_id] == inputdata[job_id].length) {
-      mapkeys[job_id] = Object.keys(mapdata[job_id]);
+    jobs[job_id].mapreturned++;
+    if(jobs[job_id].mapreturned == jobs[job_id].inputdata.length) {
+      jobs[job_id].mapkeys = Object.keys(jobs[job_id].mapdata);
       var mappointer = 0;
       sprayClients(function(c) {
-        c.socket.emit('sendReduce', job_id, mapkeys[job_id][mappointer], mapdata[job_id][mapkeys[job_id][mappointer]]);
-        return ++mappointer < mapkeys[job_id].length;
+        c.socket.emit('sendReduce', job_id, jobs[job_id].mapkeys[mappointer], jobs[job_id].mapdata[jobs[job_id].mapkeys[mappointer]]);
+        return ++mappointer < jobs[job_id].mapkeys.length;
       });
     }
   });
 
   socket.on('sendReduced', function(job_id, key, data) {
-    reducedata[job_id][key] = data;
-    reducereturned[job_id]++;
-    if(reducereturned[job_id] == mapkeys[job_id].length) {
+    jobs[job_id].reducedata[key] = data;
+    jobs[job_id].reducereturned++;
+    if(jobs[job_id].reducereturned == jobs[job_id].mapkeys.length) {
       broadcastControllers(function(c) {
-        c.socket.emit('finished', job_id, reducedata[job_id]);
+        c.socket.emit('finished', job_id, jobs[job_id].reducedata);
       });
     }
   });
-  /*
+  
 	socket.on('sendLocation', function (data) {
     var c = clients[socket.client_id];
 		if(c) {
@@ -169,7 +166,7 @@ io.sockets.on('connection', function (socket) {
 			c.loc = data;
 		}
   });
-  */
+  
 });
 
 function getAllLocations() {
