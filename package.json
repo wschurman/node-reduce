@@ -1,7 +1,9 @@
 {
-  "name": "node-reduce",
-  "version": "0.0.1",
-  "dependencies": {
-    "express": "2.5.8"
+    "name": "application-name"
+  , "version": "0.0.1"
+  , "private": true
+  , "dependencies": {
+      "express": "2.5.8"
+    , "jade": ">= 0.0.1"
   }
 }
