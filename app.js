@@ -62,6 +62,7 @@ function resetJob() {
 }
 
 app.post('/', function(req, res) {
+  inputdata.push(req.body.input);
   while(inputpointer < inputdata.length) {
     for(c in clients) {
       if(inputpointer < inputdata.length) {

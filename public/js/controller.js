@@ -12,7 +12,10 @@ socket.on('finished', function(data) {
 $(function() {
   $('#button').click(function() {
     console.log('posting');
-    $.post('/',function(){});
+    var data = {
+      input: $('#inputdata').val()
+    };
+    $.post('/', data,function(){});
     return false;
   });
 });
