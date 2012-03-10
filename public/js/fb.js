@@ -8,13 +8,13 @@ FB.init({
 $(function() {
     FB.getLoginStatus(function(response) {
         if (response.status == 'connected' || response.status == 'not_authorized') {
-            $('fbLogin').hide();
-            $('fbLogout').show();
-            $('shareList').show();
+            $('#fbLogin').hide();
+            $('#fbLogout').show();
+            $('#shareList').show();
         } else {
-            $('fbLogin').show();
-            $('fbLogout').hide();
-            $('shareList').hide();
+            $('#fbLogin').show();
+            $('#fbLogout').hide();
+            $('#shareList').hide();
         }
     });
 });
@@ -22,9 +22,9 @@ $(function() {
 function login() {
     FB.login(function(response) {
         if (response.session) {
-            $('fbLogin').hide();
-            $('fbLogout').show();
-            $('shareList').show();
+            $('#fbLogin').hide();
+            $('#fbLogout').show();
+            $('#shareList').show();
         } else {
             alert('Login was unsuccessful.');
         }
@@ -33,9 +33,9 @@ function login() {
 
 function logout() {
     FB.logout(function(response) {
-        $('fbLogin').show();
-        $('fbLogout').hide();
-        $('shareList').hide();
+        $('#fbLogin').show();
+        $('#fbLogout').hide();
+        $('#shareList').hide();
     });
 }
 

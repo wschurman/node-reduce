@@ -12,9 +12,9 @@ script(type='text/javascript', src='/js/fb.js')
 header.clearfix
       br
       #login
-          a(href="#", id="fbLogin", class="facebook-button link", onclick="login(); return false;") 
+          a(href="#", id="fbLogin", class="button", onclick="login(); return false;") 
             span(class="plus") Facebook Connect - Login
-          a(href="#", id="fbLogout", class="facebook-button link", onclick="logout(); return false;") 
+          a(href="#", id="fbLogout", class="button", onclick="logout(); return false;") 
             span(class="plus") Facebook Connect - Logout
       br
       #share-app(id="shareList")
@@ -32,5 +32,4 @@ header.clearfix
           p Your friends using this app:
           ul(id="friends_using_app")
 
-script(type='text/javascript', src='/js/fb_postinit.js')
  
