@@ -138,6 +138,7 @@ var lionSleepsTonight = [
 "We-um-um-a-way"];
 
 var wordCount = {
+  name: 'wordCount',
   data: lionSleepsTonight,
   mapBatch: 10,
   reduceBatch: 10,
@@ -182,6 +183,7 @@ function indexedLion() {
   return output;
 }
 var invertedIndex = {
+  name: 'invertedIndex',
   data: indexedLion(),
   mapBatch: 10,
   reduceBatch: 10,
@@ -221,6 +223,7 @@ var invertedIndex = {
 
 // gets links
 var webCrawler = {
+  name: 'webCrawler',
   data: ["http://google.com","http://www.yahoo.com"],
   mapBatch: 10,
   reduceBatch: 10,
@@ -265,7 +268,8 @@ var webCrawler = {
 
 var fs = require('fs');
 var anagram = {
-  data: fs.readFileSync("COMMON.TXT","ASCII").split("\r\n"),
+  name: 'anagram',
+  data: fs.readFileSync("COMMON.TXT","ASCII").split("\n"),
   mapBatch: 1000,
   reduceBatch: 1000,
   map: (function(input, ret) {
@@ -442,7 +446,7 @@ io.sockets.on('connection', function (socket) {
     // all finished reducing
     if(job.reducereturned == job.reduceCount) {
       broadcastControllers(function(c) {
-        c.socket.emit('finished', job_id, Object.keys(clients).length, job.reduceData);
+        c.socket.emit('finished', job_id, job.job_type.name, Object.keys(clients).length, job.reduceData);
       });
       delete jobs[job_id];
     }
