@@ -6,10 +6,10 @@ This is a distributed MapReduce framework written in node.js for the Cornell Fac
 Contributors
 =============
 
-Harrison Wong
-William Schurman
-Bryan Cuccioli
-Jeremy Feinstein
+- Harrison Wong
+- William Schurman
+- Bryan Cuccioli
+- Jeremy Feinstein
 
 License
 ========
