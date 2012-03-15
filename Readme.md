@@ -2,6 +2,7 @@ Introduction
 ========
 
 This is a distributed MapReduce framework written in node.js for the Cornell Facebook Hackathon.
+You can try a demo at http://node-reduce.herokuapp.com/ (might or might not work, who knows?)
 
 Contributors
 =============
@@ -14,7 +15,7 @@ Contributors
 License
 ========
 
- Copyright 2011 William Schurman.
+ Copyright 2011 William Schurman, Harrison Wong.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
